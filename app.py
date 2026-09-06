@@ -12,6 +12,51 @@ from google import genai
 from google.genai import types
 
 import base64
+import hashlib
+
+# Demo Failsafe Mode Generator for API 429/503/Quota Exhaustion
+def generate_failsafe_verdict(image_obj, label="Anonymous Subject"):
+    try:
+        import io
+        img_byte_arr = io.BytesIO()
+        image_obj.save(img_byte_arr, format=image_obj.format or 'PNG')
+        image_bytes = img_byte_arr.getvalue()
+    except Exception:
+        image_bytes = str(label).encode('utf-8')
+
+    seed = int(hashlib.md5(image_bytes).hexdigest()[:8], 16)
+    random.seed(seed)
+
+    dirt_pct = round(random.uniform(45.0, 88.0), 1)
+
+    failsafe_roasts = [
+        "Did you drag these through an open drainage ditch? These don't belong on a floor, they belong in a hazardous waste incinerator.",
+        "These kicks have survived two wars and a swamp festival. Absolutely rancid hygiene. Take them off before you rot the floorboards.",
+        "Calling this footwear is an insult to shoes. The soles are held together purely by dried dirt and bad decisions.",
+        "Straight biohazard. Even stray dogs wouldn't chew on these. Wash them immediately or walk barefoot, you slob."
+    ]
+
+    brands = [
+        ("Nike Air Force 1 (Beater Edition)", "-$24.00 (Buyer demands disposal fee)"),
+        ("Suspect Market Knockoff", "-$12.50 (Zero resale value)"),
+        ("Adidas Superstar", "-$18.00 (Seller pays shipping + penalty)"),
+        ("Puma Suede (Caked Sludge)", "-$30.00 (Platform account banned)")
+    ]
+    brand, val = random.choice(brands)
+
+    # Re-seed random generator for general app randomness
+    random.seed()
+
+    return ShoeInspectionResult(
+        shoe_detected=True,
+        dirtiness_percentage=dirt_pct,
+        rank_title="Sludge Collector (Failsafe Mode)",
+        crime_category="Severe Footwear Neglect",
+        verdict="HOUSE_ENTRY_DENIED",
+        roast_reason=random.choice(failsafe_roasts),
+        detected_brand=brand,
+        stockx_valuation=val
+    )
 
 # Base64 Audio SFX Helper Function
 def get_audio_html(file_path: str, autoplay: bool = True) -> str:
@@ -587,9 +632,13 @@ else:
 
                 try:
                     if not response:
-                        raise last_error or Exception("All Gemini models failed or hit quota limits.")
+                        # Seamless Failsafe Mode Trigger
+                        parsed_result = generate_failsafe_verdict(item['image'], item['label'])
+                        status_container.update(label=f"⚡ Demo Failsafe Activated: **{item['label']}**", state="complete", expanded=False)
+                    else:
+                        parsed_result = ShoeInspectionResult.model_validate_json(response.text)
+                        status_container.update(label=f"🎯 Inspection Complete: **{item['label']}**", state="complete", expanded=False)
 
-                    parsed_result = ShoeInspectionResult.model_validate_json(response.text)
                     results.append({
                         "item": item,
                         "res": parsed_result
@@ -602,11 +651,21 @@ else:
                         crime_category=parsed_result.crime_category,
                         verdict=parsed_result.verdict
                     )
-                    status_container.update(label=f"🎯 Inspection Complete: **{item['label']}**", state="complete", expanded=False)
 
                 except Exception as e:
-                    status_container.update(label=f"❌ Failed: {item['label']}", state="error", expanded=True)
-                    st.error(f"Error inspecting {item['label']}: {str(e)}")
+                    parsed_result = generate_failsafe_verdict(item['image'], item['label'])
+                    results.append({
+                        "item": item,
+                        "res": parsed_result
+                    })
+                    append_to_csv(
+                        suspect_name=item["label"],
+                        dirt_pct=parsed_result.dirtiness_percentage,
+                        rank_title=parsed_result.rank_title,
+                        crime_category=parsed_result.crime_category,
+                        verdict=parsed_result.verdict
+                    )
+                    status_container.update(label=f"⚡ Demo Failsafe Activated: **{item['label']}**", state="complete", expanded=False)
                 
                 progress_bar.progress((i + 1) / len(items_to_process))
 
