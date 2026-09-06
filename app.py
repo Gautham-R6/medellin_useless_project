@@ -13,6 +13,7 @@ from google.genai import types
 
 import base64
 import hashlib
+import textwrap
 
 # Demo Failsafe Mode Generator for API 429/503/Quota Exhaustion
 def generate_failsafe_verdict(image_obj, label="Anonymous Subject"):
@@ -733,19 +734,20 @@ else:
                             </div>
                         """, unsafe_allow_html=True)
 
-                    st.markdown(f"""
+                    roast_text = getattr(res, "roast_reason", getattr(res, "roast", ""))
+                    st.markdown(textwrap.dedent(f"""
                         <div class="hazard-reason-box" style="border-color: #ef4444; background: rgba(40, 5, 5, 0.9);">
                             <div class="hazard-title" style="color: #ef4444;">⚠️ SYSTEM EXASPIRATION // NON-SHOE TARGET</div>
                             <p style="color: #fca5a5; font-size: 1.1rem; font-weight: bold; line-height: 1.5; margin: 0;">
-                                "{res.roast_reason}"
+                                "{roast_text}"
                             </p>
                         </div>
-                    """, unsafe_allow_html=True)
+                    """), unsafe_allow_html=True)
 
                 else:
                     tier_info = get_tier_info(res.dirtiness_percentage)
 
-                    st.markdown(f"""
+                    st.markdown(textwrap.dedent(f"""
                         <div class="verdict-box" style="border-color: {tier_info['badge_color']}; box-shadow: 0 0 25px {tier_info['badge_color']};">
                             <div style="font-family: 'Share Tech Mono', monospace; color: #94a3b8; font-size: 0.85rem; letter-spacing: 1px;">CONTAMINATION TIER & VERDICT</div>
                             <div style="font-family: 'Orbitron', sans-serif; font-size: 1.5rem; font-weight: 800; color: {tier_info['badge_color']}; margin-top: 4px;">
@@ -755,47 +757,55 @@ else:
                                 {tier_info['verdict_label']}
                             </div>
                         </div>
-                    """, unsafe_allow_html=True)
+                    """), unsafe_allow_html=True)
 
                     col_m1, col_m2 = st.columns(2)
                     with col_m1:
-                        st.markdown(f"""
+                        st.markdown(textwrap.dedent(f"""
                             <div class="telemetry-item" style="text-align: center; border-color: {tier_info['badge_color']};">
                                 <span style="color: #94a3b8; font-size: 0.8rem;">DIRT INDEX</span>
                                 <h2 style="color: {tier_info['badge_color']}; margin: 0; font-family: 'Orbitron', sans-serif;">{tier_info['emoji']} {res.dirtiness_percentage:.1f}%</h2>
                             </div>
-                        """, unsafe_allow_html=True)
+                        """), unsafe_allow_html=True)
                     with col_m2:
-                        st.markdown(f"""
+                        st.markdown(textwrap.dedent(f"""
                             <div class="telemetry-item" style="text-align: center;">
                                 <span style="color: #94a3b8; font-size: 0.8rem;">OFFENSE CATEGORY</span>
                                 <h4 style="color: #00f2ff; margin: 0; font-family: 'Orbitron', sans-serif;">🚨 {res.crime_category}</h4>
                             </div>
-                        """, unsafe_allow_html=True)
+                        """), unsafe_allow_html=True)
 
                     val_str = getattr(res, "stockx_valuation", "N/A")
-                    val_color = "#ef4444" if ("-" in val_str or "ban" in val_str.lower() or "disposal" in val_str.lower()) else "#39ff14"
-                    brand_str = getattr(res, "detected_brand", "Unbranded / Unknown")
+                    brand_str = getattr(res, "detected_brand", "")
+                    
+                    brand_line = ""
+                    if brand_str:
+                        brand_line = f"🏷️ **Brand:** {brand_str} &nbsp;|&nbsp; 📉 **Valuation:** {val_str}"
+                    else:
+                        brand_line = f"📉 **Valuation:** {val_str}"
 
-                    st.markdown(f"""
-                        <div class="hazard-reason-box" style="border-color: {tier_info['badge_color']};">
-                            <div class="hazard-title" style="color: {tier_info['badge_color']};">⚠️ {tier_info['emoji']} {tier_info['tier_title'].upper()} | {tier_info['verdict_label'].upper()}</div>
-                            <p style="color: #a855f7; font-weight: bold; margin-top: 4px; margin-bottom: 8px;">Tag: {res.rank_title}</p>
-                            
-                            <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
-                                <div style="background: rgba(0, 242, 255, 0.1); border: 1px solid #00f2ff; padding: 5px 12px; border-radius: 4px; font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; color: #00f2ff;">
-                                    🏷️ BRAND IDENTIFIED: <b>{brand_str}</b>
-                                </div>
-                                <div style="background: rgba(10, 10, 25, 0.9); border: 1px solid {val_color}; padding: 5px 12px; border-radius: 4px; font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; color: {val_color}; box-shadow: 0 0 10px {val_color};">
-                                    📉 ESTIMATED DRIP VALUE: <b>{val_str}</b>
-                                </div>
-                            </div>
+                    roast_text = getattr(res, "roast_reason", getattr(res, "roast", ""))
+                    tier_title = tier_info['tier_title']
+                    verdict_text = tier_info['verdict_label']
+                    personality_tag = getattr(res, "rank_title", "Footwear Subject")
 
-                            <p style="color: #e2e8f0; font-size: 1.05rem; font-style: italic; line-height: 1.5; margin: 0;">
-                                "{res.roast_reason}"
-                            </p>
+                    card_html = f"""
+                    <div class="roast-container" style="background: rgba(10, 10, 20, 0.85); border: 1px solid #ff4b4b; border-radius: 8px; padding: 16px; margin-top: 10px;">
+                        <div style="color: #ff4b4b; font-weight: 700; font-size: 1.1rem; margin-bottom: 8px;">
+                            ⚠️ {tier_title} | {verdict_text}
                         </div>
-                    """, unsafe_allow_html=True)
+                        <div style="color: #00f2ff; font-weight: 600; font-size: 0.95rem; margin-bottom: 12px;">
+                            Tag: {personality_tag}
+                        </div>
+                        <div style="color: #e2e8f0; font-size: 0.9rem; margin-bottom: 12px; background: rgba(0, 242, 255, 0.05); padding: 6px 10px; border-radius: 4px; border-left: 3px solid #00f2ff;">
+                            {brand_line}
+                        </div>
+                        <div style="color: #f1f5f9; font-size: 1.05rem; font-style: italic; line-height: 1.5;">
+                            "{roast_text}"
+                        </div>
+                    </div>
+                    """
+                    st.markdown(textwrap.dedent(card_html), unsafe_allow_html=True)
             else:
                 # Tournament Display inside Center
                 st.markdown("<h3 style='color: #ff007f; text-align: center;'>👑 CONTAMINATION CHAMPIONSHIP RANKINGS</h3>", unsafe_allow_html=True)
@@ -804,19 +814,21 @@ else:
                     res = entry["res"]
                     item = entry["item"]
                     if not getattr(res, "shoe_detected", True):
-                        st.markdown(f"""
+                        roast_text = getattr(res, "roast_reason", getattr(res, "roast", ""))
+                        st.markdown(textwrap.dedent(f"""
                             <div class="hud-panel" style="margin-bottom: 10px; border-color: #ef4444; background: rgba(30, 0, 0, 0.8);">
                                 <span style="color: #ef4444; font-weight: bold;">INVALID SCAN: {item['label']}</span>
                                 <h3 style="color: #ef4444; margin: 4px 0;">AARE KETTIKKANA, AARE KETTIKKANAN ITH ENIKK</h3>
-                                <p style="color: #fca5a5; font-style: italic;">"{res.roast_reason}"</p>
+                                <p style="color: #fca5a5; font-style: italic;">"{roast_text}"</p>
                             </div>
-                        """, unsafe_allow_html=True)
+                        """), unsafe_allow_html=True)
                     else:
                         tier_info = get_tier_info(res.dirtiness_percentage)
                         val_str = getattr(res, "stockx_valuation", "N/A")
                         val_color = "#ef4444" if ("-" in val_str or "ban" in val_str.lower() or "disposal" in val_str.lower()) else "#39ff14"
                         brand_str = getattr(res, "detected_brand", "Unbranded")
-                        st.markdown(f"""
+                        roast_text = getattr(res, "roast_reason", getattr(res, "roast", ""))
+                        st.markdown(textwrap.dedent(f"""
                             <div class="hud-panel" style="margin-bottom: 10px; border-color: {tier_info['badge_color']};">
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <span style="color: #ff007f; font-weight: bold; font-size: 1.1rem;">RANK #{rank_idx + 1}: {item['label']}</span>
@@ -824,9 +836,9 @@ else:
                                 </div>
                                 <h2 style="color: {tier_info['badge_color']}; margin: 5px 0;">{res.dirtiness_percentage:.1f}% Dirt ({tier_info['verdict_label']})</h2>
                                 <p style="color: #00f2ff; margin: 0;"><b>Brand:</b> {brand_str} | <b>StockX Value:</b> <span style="color: {val_color}; font-weight: bold;">{val_str}</span></p>
-                                <p style="color: #cbd5e1; font-style: italic; margin-top: 6px;">"{res.roast_reason}"</p>
+                                <p style="color: #cbd5e1; font-style: italic; margin-top: 6px;">"{roast_text}"</p>
                             </div>
-                        """, unsafe_allow_html=True)
+                        """), unsafe_allow_html=True)
         else:
             st.info("👈 Load footwear images on the left panel and execute the scan to calculate dirt index.")
 
